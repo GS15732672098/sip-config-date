@@ -1,0 +1,84 @@
+server:
+  port: 8086
+spring:
+  application:
+    name: gateway-service
+  redis:
+    host: 10.6.50.122
+    port: 6379
+    database: 0
+  profiles:
+    active: gateway-service2
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+
+
+---
+#路由配置
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false  #表明gateway开启服务注册和发现的功能并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务。
+          lowerCaseServiceId: true  #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了）
+      routes:  #手动配置转发服务http://10.6.50.122:8079/ibp/sysmanage/t00_group/queryListView.do?modulekey=14011000
+
+        - id: ibp-sysmanage
+          uri: lb://IBP-SYSMANAGE  #服务名大写
+          order: 11 #j加载顺序设置(默认按由上至下的顺序匹配)
+          predicates:  #将以/demo/**开头的请求都会转发到uri为lb://SERVICE-HI的地址上
+            - Path=/ibp/sysmanage/**
+#            - Weight=server1, 50
+          filters:   #用StripPrefix的filter 在转发之前将/demo去掉
+              - StripPrefix=0   #去掉前缀个数
+
+        - id: ibp-job
+          uri: lb://IBP-JOB  #服务名大写
+          order: 12 #j加载顺序设置(默认按由上至下的顺序匹配)
+          predicates:  #将以/demo/**开头的请求都会转发到uri为lb://SERVICE-HI的地址上
+            - Path=/ibp/job/**     #匹配路径
+#            - Weight=server1, 50  #权重设置
+          filters:   #用StripPrefix的filter 在转发之前将/demo去掉
+            - StripPrefix=0   #去掉前缀个数
+
+        - id: ibp-cms
+          uri: lb://IBP-CMS  #服务名大写
+          order: 13 #j加载顺序设置(默认按由上至下的顺序匹配)
+          predicates:  #将以/demo/**开头的请求都会转发到uri为lb://SERVICE-HI的地址上
+            - Path=/ibp/cms/**     #匹配路径
+          #            - Weight=server1, 50  #权重设置
+          filters:   #用StripPrefix的filter 在转发之前将/demo去掉
+            - StripPrefix=0   #去掉前缀个数
+
+        - id: sip-ribbon
+          uri: lb://SIP-RIBBON  #服务名大写
+          order: 0 #j加载顺序设置(默认按由上至下的顺序匹配)
+          predicates:  #将以/demo/**开头的请求都会转发到uri为lb://SERVICE-HI的地址上
+            - Path=/ribbon/**
+          filters:   #用StripPrefix的filter 在转发之前将/demo去掉
+            - StripPrefix=1
+
+
+        - id: ibp
+          uri: lb://IBP  #服务名大写
+          order: 20 #j加载顺序设置(默认按由上至下的顺序匹配)
+          predicates:  #将以/demo/**开头的请求都会转发到uri为lb://SERVICE-HI的地址上
+            - Path=/ibp/**
+          filters:   #用StripPrefix的filter 在转发之前将/demo去掉(数字表示去掉前缀个数)
+            - StripPrefix=0
+#            - name: Hystrix    #服务降级过滤器
+#              args:
+#                name: suibianqu   #名字(自定义)
+#                fallbackUri: forward:/myFallback   #回退路径
+#            - name: RequestRateLimiter  #限流配置
+#              args:
+#                key-resolver: '#{@hostAddrKeyResolver}'  #用于限流的键的解析器的 Bean 对象的名字。它使用 SpEL 表达式根据#{@beanName}从 Spring 容器中获取 Bean 对象。
+#                redis-rate-limiter.replenishRate: 1  #令牌桶每秒填充平均速率
+#                redis-rate-limiter.burstCapacity: 3  #令牌桶总容量
+
+
+       #同时将spring.cloud.gateway.discovery.locator.enabled改为false，如果不改的话，之前的localhost:8081/servi ce-hi/hi?name=1323这样的请求地址也能正常访问，因为这时为每个服务创建了2个router。
+  profiles: gateway-service2
+
